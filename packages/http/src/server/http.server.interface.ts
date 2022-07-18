@@ -10,6 +10,7 @@ type HttpListenerFn = ReturnType<typeof httpListener>;
 export interface CreateServerConfig extends ServerConfig<HttpServerEffect, HttpListenerFn> {
   port?: number;
   hostname?: string;
+  rootPath?: string;
   options?: ServerOptions;
 }
 

@@ -1,5 +1,6 @@
 import * as http from 'http';
 import * as https from 'https';
+import { URL } from 'url';
 import { merge, EMPTY } from 'rxjs';
 import { takeWhile } from 'rxjs/operators';
 import { pipe } from 'fp-ts/lib/function';
@@ -29,7 +30,7 @@ import { HttpRequestBusToken, HttpRequestBus } from './internal-dependencies/htt
 import { HttpServerClient, HttpServerClientToken } from './internal-dependencies/httpServerClient.reader';
 
 export const createServer = async (config: CreateServerConfig) => {
-  const { listener, event$, port, hostname, dependencies = [], options = {} } = config;
+  const { listener, event$, port, hostname, dependencies = [], options = {}, rootPath } = config;
 
   const environmentConfig = provideConfig();
 
@@ -70,8 +71,16 @@ export const createServer = async (config: CreateServerConfig) => {
     const runningServer = server.listen(port, hostname);
 
     // @TODO: bind Routing
+    const DEFAULT_PATH = '/';
 
-    runningServer.on('request', httpListener);
+    runningServer.on('request', (req: http.IncomingMessage, res: http.OutgoingMessage) => {
+      if(req.url != null)
+      {
+	const path = new URL(req.url, `${options.httpsOptions ? 'https' : 'http'}://${req.headers.host}`).pathname;
+	if(path.startsWith(rootPath ?? DEFAULT_PATH))
+	  httpListener(req, res);
+      }
+    });
     runningServer.on('close', runningServer.removeAllListeners);
     runningServer.on('error', reject);
     runningServer.on('listening', () => resolve(runningServer));
